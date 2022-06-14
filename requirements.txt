@@ -1,0 +1,7 @@
+Flask==2.1.2
+SQLAlchemy
+gunicorn
+Jinja2
+flask_excel==0.0.7
+pyexcel-xls==0.7.0
+Werkzeug==2.1.2

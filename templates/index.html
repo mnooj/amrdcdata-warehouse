@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMRDC Data Warehouse - Access AWS Data</title>
+    <link rel='stylesheet' id='uwmadison-fonts-css'
+        href='https://amrdc.ssec.wisc.edu/wp-test/wp-content/themes/amrdc-theme/dist/fonts/uw160/fonts.css?ver=1.0.0'
+        type='text/css' media='all' />
+    <link rel='stylesheet' id='uwmadison-style-css'
+        href='https://amrdc.ssec.wisc.edu/wp-test/wp-content/themes/amrdc-theme/dist/main.min.css?ver=0.7.0'
+        type='text/css' media='all' />
+    <style type="text/css">
+        #header {
+            padding: 10px;
+            vertical-align: top;
+        }
+
+        #row_container {
+            padding-left: 10px;
+            display: inline-flex;
+            margin: 5%;
+            margin-top: 1%;
+        }
+
+        #names_list,
+        #years_list,
+        #format,
+        #measurements,
+        #button {
+            display: inline-table;
+            padding: 5px;
+            zoom: 1;
+        }
+
+        #citation_box {
+            display: none;
+            caption-side: top;
+            padding: 5px;
+            margin-left: 30%;
+            margin-right: 30%;
+            margin-top: 1%;
+            margin-bottom: 5%;
+            border: 1px solid #CCC;
+            background-color: #fff;
+        }
+
+        h1 {
+            margin-right: 36%;
+            padding: 0px;
+        }
+
+        select {
+            width: 250px;
+            font-size: 16px;
+            border: 1px solid #CCC;
+            cursor: pointer;
+            background-color: #fff;
+        }
+
+        select[multiple] {
+            height: 400px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="header">
+        <div id="logo">
+            <a href="https://amrdcdata.ssec.wisc.edu"><img src="{{url_for('static', filename='logo.png')}}" width="75"
+                    height="75" align="left" /></a>
+        </div>
+        <div id="title">
+            <h1 align="right">Data Warehouse (prototype)</h1>
+        </div>
+    </div>
+    <div id="tips">
+        <center><h5>Use the SHIFT or COMMAND key to select multiple options</h5></center>
+    </div>
+
+    <div id="row_container">
+        <div id="years_list">
+            <select name="years" id="years" multiple></select>
+            <br>
+            <center><input type="submit" value="Generate Station list" onclick="get_stations()"></center>
+        </div>
+
+        <div id="names_list">
+            <select name="names" id="names" multiple>
+                <option value="">Select Stations</option>
+            </select>
+        </div>
+
+        <div id="measurements">
+            <select name="meas" id="meas" multiple>
+                <option value="temperature">Temperature</option>
+                <option value="pressure">Pressure</option>
+                <option value="wind_speed">Wind Speed</option>
+                <option value="wind_direction">Wind Direction</option>
+                <option value="humidity">Humidity</option>
+                <option value="delta_t">Delta-T</option>
+            </select>
+        </div>
+
+        <div id="format_button">
+            <select name="format" id="format" style="float:inline-start; margin:5px">
+                <option value="">Select file format</option>
+                <option value="csv">CSV (Comma-Separated Value)</option>
+                <option value="xls">XLS (Excel)</option>
+            </select>
+        </div>
+
+        <div id="button">
+            <input type="submit" value="Download file" onclick="generate()">
+        </div>
+    </div>
+    
+    <div id ="citation_box">
+            <span id="link_anchor"></span>
+    </div>
+
+    <script type="text/javascript">
+
+        window.onload = function () {
+            var years = document.getElementById("years");
+            data = {}
+            fetch("/year_list")
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (response) {
+                    for (var i = 0; i < response.length; i++) {
+                        var option = document.createElement("option");
+                        option.value = response[i];
+                        option.text = response[i];
+                        years.appendChild(option);
+                    }
+                })
+                .catch(function (err) {
+                    console.log('error: ' + err);
+                });
+        }
+
+        function get_multi(name) {
+            var selected = [];
+                for (var option of document.getElementById(name).options) {
+                    if (option.selected) {
+                        selected.push(option.value);
+                    }
+                }
+                return selected.join(',');
+        }
+
+        function get_stations() {
+            var years = get_multi("years");
+            var names = document.getElementById("names");
+            names.options.length = 0;
+            data = {}
+            fetch("/station_list?year=" + years)
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    for (var i = 0; i < data.length; i++) {
+                        var option = document.createElement("option");
+                        option.value = data[i].toString();
+                        option.text = data[i];
+                        names.appendChild(option);
+                    }
+                })
+                .catch(function (err) {
+                    console.log('error: ' + err);
+                });
+        }
+
+        function generate() {
+            var year = get_multi("years");
+            var station = get_multi("names");
+            var meas = get_multi("meas");
+            var format = document.getElementById("format").value;
+            window.location = "/download?year=" + year + "&station=" + station + "&meas=" + meas + "&format=" + format;
+            var citation = document.getElementById("link_anchor");
+            var citation_box = document.getElementById("citation_box");
+            fetch("/citation?year=" + year)
+                .then(function (response) {
+                    return response.text();
+                })
+                .then(function (response) {
+                    citation_box.style.display = "inline-block";
+                    citation_box.innerHTML = "<caption><b>Recommended Citation</b></caption><p>" + response + "</p>";
+                })
+                .catch(function (err) {
+                    console.log('error: ' + err);
+                });
+        }
+    </script>
+</body>
+</html>
